@@ -1,32 +1,40 @@
 from flask import Flask, request, jsonify
+import pandas as pd
 import joblib
-import numpy as np
-
-# Cargar el modelo entrenado
-model = joblib.load('model_rf.pkl')
 
 app = Flask(__name__)
+
+# Carga del modelo y encoders
+model = joblib.load('model_rf.pkl')
+le_State = joblib.load('le_State.pkl')
+le_Make = joblib.load('le_Make.pkl')
+le_Model = joblib.load('le_Model.pkl')
+
+def preprocess_data(df):
+    # Aquí deberías incluir la lógica de preprocesamiento aplicada antes del entrenamiento
+    df['Mileage'] = np.log(df['Mileage'])
+    return df
+
+def encode_features(df):
+    df['State_encoded'] = le_State.transform(df['State'])
+    df['Make_encoded'] = le_Make.transform(df['Make'])
+    df['Model_encoded'] = le_Model.transform(df['Model'])
+    return df[['Year', 'Mileage', 'State_encoded', 'Make_encoded', 'Model_encoded']]
 
 @app.route('/predict', methods=['POST'])
 def predict():
     data = request.get_json(force=True)
-    # Extraer características desde el JSON
-    features = [
-        data['Year'],
-        data['Mileage'],
-        data['State_encoded'],
-        data['Make_encoded'],
-        data['Model_encoded']
-    ]
-    
-    # Predecir el precio usando el modelo cargado
-    price_log = model.predict([features])[0]  # Suponiendo que el modelo espera una matriz 2D
-    price = np.exp(price_log)  # Convertir de log-precio a precio
+    df = pd.DataFrame(data, index=[0])
 
-    # Devolver la predicción como un JSON
-    return jsonify({
-        'predicted_price': price
-    })
+    # Preprocesamiento y codificación de características
+    df_processed = preprocess_data(df)
+    df_encoded = encode_features(df_processed)
+    
+    # Predicción
+    prediction = model.predict(df_encoded)
+    
+    # Devolución de la predicción
+    return jsonify({'prediction': prediction.tolist()})
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
