@@ -2,23 +2,22 @@ from flask import Flask
 from flask_restx import Api, Resource, fields
 import joblib
 from flask_cors import CORS
-#from models.m09_model_deployment import predict_price
-from m09_model_deployment import predict_price  # Import the prediction function
+from m09_model_deployment import predict_price
 
-# Initialize Flask app
+# Inicia flask
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes and origins
 
-# Initialize API with Flask app
+# API
 api = Api(
     app, 
     version='1.0', 
-    title='Vehicle Price Prediction API',
-    description='API uses a Random Forest model to predict used vehicle prices'
+    title='Prediccion Precios Vehiculos',
+    description='API usa un modelo Random Forest para pedecir precios de vehiculos'
 )
 
 # Create a namespace
-ns = api.namespace('predict', description='Predict vehicle prices')
+ns = api.namespace('predict', description='Predice precios vehiculos')
 
 # Define the parser for incoming request arguments
 parser = api.parser()
@@ -26,31 +25,31 @@ parser.add_argument(
     'Year', 
     type=int, 
     required=True, 
-    help='Year of the vehicle', 
+    help='Modelo (año) vehiculo', 
     location='args')
 parser.add_argument(
     'Mileage', 
     type=float, 
-    required=True, 
-    help='Mileage of the vehicle', 
+    required=False, 
+    help='Cantidad millas rodadas', 
     location='args')
 parser.add_argument(
-    'State_encoded', 
-    type=int, 
-    required=True, 
-    help='Encoded state of vehicle registration', 
+    'State', 
+    type=str, 
+    required=False, 
+    help='Estado donde esta registrado', 
     location='args')
 parser.add_argument(
-    'Make_encoded', 
-    type=int, 
-    required=True, 
-    help='Encoded make of the vehicle', 
+    'Make', 
+    type=str, 
+    required=False, 
+    help='Marca vehiculo', 
     location='args')
 parser.add_argument(
-    'Model_encoded', 
-    type=int, 
-    required=True, 
-    help='Encoded model of the vehicle', 
+    'Model', 
+    type=str, 
+    required=False, 
+    help='modelo vehiculo', 
     location='args')
 
 # Define resource fields
