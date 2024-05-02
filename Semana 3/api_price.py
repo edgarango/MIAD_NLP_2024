@@ -1,40 +1,75 @@
-from flask import Flask, request, jsonify
-import pandas as pd
+from flask import Flask
+from flask_restx import Api, Resource, fields
 import joblib
+from flask_cors import CORS
+#from models.m09_model_deployment import predict_price
+from m09_model_deployment import predict_price  # Import the prediction function
 
+# Initialize Flask app
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes and origins
 
-# Carga del modelo y encoders
-model = joblib.load('model_rf.pkl')
-le_State = joblib.load('le_State.pkl')
-le_Make = joblib.load('le_Make.pkl')
-le_Model = joblib.load('le_Model.pkl')
+# Initialize API with Flask app
+api = Api(
+    app, 
+    version='1.0', 
+    title='Vehicle Price Prediction API',
+    description='API uses a Random Forest model to predict used vehicle prices'
+)
 
-def preprocess_data(df):
-    # Aquí deberías incluir la lógica de preprocesamiento aplicada antes del entrenamiento
-    df['Mileage'] = np.log(df['Mileage'])
-    return df
+# Create a namespace
+ns = api.namespace('predict', description='Predict vehicle prices')
 
-def encode_features(df):
-    df['State_encoded'] = le_State.transform(df['State'])
-    df['Make_encoded'] = le_Make.transform(df['Make'])
-    df['Model_encoded'] = le_Model.transform(df['Model'])
-    return df[['Year', 'Mileage', 'State_encoded', 'Make_encoded', 'Model_encoded']]
+# Define the parser for incoming request arguments
+parser = api.parser()
+parser.add_argument(
+    'Year', 
+    type=int, 
+    required=True, 
+    help='Year of the vehicle', 
+    location='args')
+parser.add_argument(
+    'Mileage', 
+    type=float, 
+    required=True, 
+    help='Mileage of the vehicle', 
+    location='args')
+parser.add_argument(
+    'State_encoded', 
+    type=int, 
+    required=True, 
+    help='Encoded state of vehicle registration', 
+    location='args')
+parser.add_argument(
+    'Make_encoded', 
+    type=int, 
+    required=True, 
+    help='Encoded make of the vehicle', 
+    location='args')
+parser.add_argument(
+    'Model_encoded', 
+    type=int, 
+    required=True, 
+    help='Encoded model of the vehicle', 
+    location='args')
 
-@app.route('/predict', methods=['POST'])
-def predict():
-    data = request.get_json(force=True)
-    df = pd.DataFrame(data, index=[0])
+# Define resource fields
+resource_fields = api.model('Resource', {
+    'predicted_price': fields.Float,
+})
 
-    # Preprocesamiento y codificación de características
-    df_processed = preprocess_data(df)
-    df_encoded = encode_features(df_processed)
-    
-    # Predicción
-    prediction = model.predict(df_encoded)
-    
-    # Devolución de la predicción
-    return jsonify({'prediction': prediction.tolist()})
+# Create a class for the prediction resource
+@ns.route('/')
+class VehiclePriceApi(Resource):
+    @api.doc(parser=parser)
+    @api.marshal_with(resource_fields)
+    def get(self):
+        # Extract query parameters
+        args = parser.parse_args()
+        # Use the imported function to predict the price
+        predicted_price = predict_price(**args)
+        # Return the predicted price
+        return {'predicted_price': predicted_price}
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, use_reloader=False, host='0.0.0.0', port=5000)
