@@ -30,25 +30,25 @@ parser.add_argument(
 parser.add_argument(
     'Mileage', 
     type=float, 
-    required=False, 
+    required=True, 
     help='Cantidad millas rodadas', 
     location='args')
 parser.add_argument(
     'State', 
     type=str, 
-    required=False, 
+    required=True, 
     help='Estado donde esta registrado', 
     location='args')
 parser.add_argument(
     'Make', 
     type=str, 
-    required=False, 
+    required=True, 
     help='Marca vehiculo', 
     location='args')
 parser.add_argument(
     'Model', 
     type=str, 
-    required=False, 
+    required=True, 
     help='modelo vehiculo', 
     location='args')
 
